@@ -96,4 +96,7 @@ async def serve_spa(full_path: str):
 
 if __name__ == "__main__":
     from config import PORT
-    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
+    print(f"Server running on port {PORT}")
+    # Disable reload in production (when PORT is assigned by Render)
+    is_prod = os.getenv("PORT") is not None
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=not is_prod)
