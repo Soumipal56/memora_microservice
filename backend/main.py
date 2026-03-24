@@ -1,112 +1,99 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import uvicorn
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import os
+import asyncio
 
+# Import existing services
 from services.ingest import ingest_url
 from services.search import semantic_search
 from services.graph import get_graph_data
 from db.mongo import get_all_nodes, delete_all_nodes
 
-app = FastAPI(title="Memora API", version="1.0.0")
+app = Flask(__name__, static_folder="public", static_url_path="")
+CORS(app, resources={r"/api/*": {"origins": [
+    "http://localhost:8000", 
+    "http://localhost:5173", 
+    "http://localhost:3000",
+    "https://memora-microservice-2.onrender.com"
+]}})
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://memora-microservice-2.onrender.com",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ── Routes ────────────────────────────────────────────────────────────────────
 
-# ── Models ────────────────────────────────────────────────────────────────────
+@app.route("/")
+def index():
+    return send_from_directory("public", "index.html")
 
-class IngestRequest(BaseModel):
-    url: str
-
-class SearchRequest(BaseModel):
-    query: str
-
-# ── Routes & Static Files ────────────────────────────────────────────────────
-
-@app.get("/")
-async def root():
-    return {"status": "Memora API running"}
-
-@app.post("/api/ingest")
-async def ingest(req: IngestRequest):
+@app.route("/api/ingest", methods=["POST"])
+async def ingest():
     try:
-        result = await ingest_url(req.url)
-        return result
+        data = request.json
+        url = data.get("url")
+        if not url:
+            return jsonify({"error": "URL is required"}), 400
+        
+        result = await ingest_url(url)
+        return jsonify(result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"error": str(e)}), 500
 
-@app.post("/api/search")
-async def search(req: SearchRequest):
+@app.route("/api/search", methods=["POST"])
+async def search():
     try:
-        results = await semantic_search(req.query)
-        return {"results": results}
+        data = request.json
+        query = data.get("query")
+        if not query:
+            return jsonify({"error": "Query is required"}), 400
+        
+        results = await semantic_search(query)
+        return jsonify({"results": results})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"error": str(e)}), 500
 
 @app.get("/api/nodes")
 async def list_nodes():
     try:
         nodes = await get_all_nodes()
-        return {"nodes": nodes}
+        return jsonify({"nodes": nodes})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"error": str(e)}), 500
 
 @app.get("/api/graph")
 async def graph():
     try:
         data = await get_graph_data()
-        return data
+        return jsonify(data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"error": str(e)}), 500
 
 @app.delete("/api/nodes")
 async def clear_nodes():
     try:
         await delete_all_nodes()
-        return {"message": "All nodes cleared"}
+        return jsonify({"message": "All nodes cleared"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"error": str(e)}), 500
 
-# Match static assets first (if they exist)
-if os.path.exists("public/assets"):
-    app.mount("/assets", StaticFiles(directory="public/assets"), name="assets")
-
-# Catch-all for SPA
-@app.get("/{full_path:path}")
-async def serve_spa(full_path: str):
+# Catch-all for SPA routing
+@app.route('/<path:path>')
+def catch_all(path):
     # API 404s should stay 404s
-    if full_path.startswith("api"):
-        raise HTTPException(status_code=404)
+    if path.startswith("api"):
+        return jsonify({"error": "Not Found"}), 404
     
-    # Try to serve static file
-    file_path = os.path.join("public", full_path)
-    if os.path.isfile(file_path):
-        return FileResponse(file_path)
+    # Check if the file exists in public/
+    if os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
     
     # Otherwise serve index.html
-    return FileResponse("public/index.html")
+    return send_from_directory(app.static_folder, "index.html")
 
 if __name__ == "__main__":
-    # Ensure environment variables are loaded if running as a script
     from dotenv import load_dotenv
     load_dotenv()
     
     port = int(os.environ.get("PORT", 8000))
     print(f"Running on port {port}")
     
-    # Disable reload in production (when PORT is assigned by Render)
-    is_prod = os.getenv("PORT") is not None
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=not is_prod)
+    # Flask matches host="0.0.0.0" automatically if run via `flask run --host=0.0.0.0`
+    # but for manual python main.py:
+    app.run(host="0.0.0.0", port=port, debug=False)
