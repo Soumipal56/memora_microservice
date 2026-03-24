@@ -2,7 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
+import os
 
 from services.ingest import ingest_url
 from services.search import semantic_search
@@ -13,7 +16,7 @@ app = FastAPI(title="Memora API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:8000", "http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,7 +30,7 @@ class IngestRequest(BaseModel):
 class SearchRequest(BaseModel):
     query: str
 
-# ── Routes ───────────────────────────────────────────────────────────────────
+# ── Routes & Static Files ────────────────────────────────────────────────────
 
 @app.get("/")
 async def root():
@@ -72,6 +75,24 @@ async def clear_nodes():
         return {"message": "All nodes cleared"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Match static assets first
+app.mount("/assets", StaticFiles(directory="public/assets"), name="assets")
+
+# Catch-all for SPA
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # API 404s should stay 404s
+    if full_path.startswith("api"):
+        raise HTTPException(status_code=404)
+    
+    # Try to serve static file
+    file_path = os.path.join("public", full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    
+    # Otherwise serve index.html
+    return FileResponse("public/index.html")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
