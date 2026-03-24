@@ -10,10 +10,12 @@ import Toast       from './components/Toast'
 import { useGraph } from './hooks/useGraph'
 import { useToast } from './hooks/useToast'
 import { isOldNode } from './utils/constants'
+import { useMediaQuery } from './hooks/useMediaQuery'
 
 export default function App() {
   const { nodes, edges, loading, progress, ingest, clearAll } = useGraph()
   const { toast, show } = useToast()
+  const isMobile = useMediaQuery('(max-width: 640px)')
   const [view, setView]           = useState('graph') // 'graph' | 'saved' | 'search'
   const [selectedNode, setSelected] = useState(null)
   const inputRef = useRef(null)
@@ -157,15 +159,20 @@ export default function App() {
         <div
           onClick={() => setSelected(resurfaceNodes[0])}
           style={{
-            position: 'fixed', bottom: 20, left: '50%',
+            position: 'fixed',
+            bottom: isMobile ? 16 : 20,
+            left: '50%',
             transform: 'translateX(-50%)',
+            maxWidth: 'calc(100vw - 32px)',
+            width: 'max-content',
             background: 'linear-gradient(135deg,rgba(245,158,11,0.95),rgba(251,191,36,0.95))',
             backdropFilter: 'blur(10px)',
-            borderRadius: 16, padding: '10px 24px',
-            color: '#1a0a2e', fontSize: 13, fontWeight: 800,
+            borderRadius: 16, padding: isMobile ? '10px 18px' : '10px 24px',
+            color: '#1a0a2e', fontSize: isMobile ? 12 : 13, fontWeight: 800,
             cursor: 'pointer', zIndex: 200,
             boxShadow: '0 8px 32px rgba(245,158,11,0.4)',
             animation: 'pulse 2.5s ease-in-out infinite',
+            textAlign: 'center',
           }}
         >
           🔔 {resurfaceNodes.length} memor{resurfaceNodes.length === 1 ? 'y' : 'ies'} to resurface — click to review

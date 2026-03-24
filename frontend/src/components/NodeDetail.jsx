@@ -1,4 +1,5 @@
 import { getColor, getIcon, timeAgo } from '../utils/constants'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 
 export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick }) {
   if (!node) return null
@@ -11,17 +12,43 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
     .slice(0, 5)
 
   const color = getColor(node.type)
+  const isMobile = useMediaQuery('(max-width: 640px)')
+
+  const mobileStyle = {
+    position: 'fixed', bottom: 0, left: 0, right: 0,
+    maxHeight: '70vh',
+    background: 'rgba(10,2,30,0.97)',
+    backdropFilter: 'blur(20px)',
+    borderTop: '1px solid rgba(255,110,180,0.25)',
+    borderRadius: '20px 20px 0 0',
+    overflowY: 'auto', padding: '8px 16px 28px',
+    animation: 'slideUp 0.3s ease',
+    display: 'flex', flexDirection: 'column', gap: 14,
+    zIndex: 300,
+  }
+
+  const desktopStyle = {
+    width: 320, minWidth: 280,
+    background: 'rgba(10,2,30,0.95)',
+    backdropFilter: 'blur(20px)',
+    borderLeft: '1px solid rgba(255,110,180,0.2)',
+    overflowY: 'auto', padding: 20,
+    animation: 'fadeIn 0.3s ease',
+    display: 'flex', flexDirection: 'column', gap: 14,
+  }
 
   return (
-    <aside style={{
-      width: 320, minWidth: 280,
-      background: 'rgba(10,2,30,0.95)',
-      backdropFilter: 'blur(20px)',
-      borderLeft: '1px solid rgba(255,110,180,0.2)',
-      overflowY: 'auto', padding: 20,
-      animation: 'fadeIn 0.3s ease',
-      display: 'flex', flexDirection: 'column', gap: 14,
-    }}>
+    <aside style={isMobile ? mobileStyle : desktopStyle}>
+      {/* Drag hint bar — mobile only */}
+      {isMobile && (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 4, paddingTop: 4 }}>
+          <div style={{
+            width: 40, height: 4, borderRadius: 2,
+            background: 'rgba(255,255,255,0.18)',
+          }} />
+        </div>
+      )}
+
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <span style={{
