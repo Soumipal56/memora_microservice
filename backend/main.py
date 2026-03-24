@@ -12,6 +12,14 @@ from services.search import semantic_search
 from services.graph import get_graph_data
 from db.mongo import get_all_nodes, delete_all_nodes
 
+# Ensure environment variables are loaded if running as a script
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+
+PORT = int(os.getenv("PORT", 8000))
+print(f"Running on port {PORT}")
+
 app = FastAPI(title="Memora API", version="1.0.0")
 
 app.add_middleware(
@@ -95,8 +103,6 @@ async def serve_spa(full_path: str):
     return FileResponse("public/index.html")
 
 if __name__ == "__main__":
-    from config import PORT
-    print(f"Server running on port {PORT}")
     # Disable reload in production (when PORT is assigned by Render)
     is_prod = os.getenv("PORT") is not None
     uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=not is_prod)
