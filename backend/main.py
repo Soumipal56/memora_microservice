@@ -80,8 +80,9 @@ async def clear_nodes():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Match static assets first
-app.mount("/assets", StaticFiles(directory="public/assets"), name="assets")
+# Match static assets first (if they exist)
+if os.path.exists("public/assets"):
+    app.mount("/assets", StaticFiles(directory="public/assets"), name="assets")
 
 # Catch-all for SPA
 @app.get("/{full_path:path}")
