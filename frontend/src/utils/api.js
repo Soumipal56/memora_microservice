@@ -1,5 +1,3 @@
-const BASE = import.meta.env.VITE_API_URL || ''
-
 async function request(method, path, body, isFormData = false) {
   const token = localStorage.getItem('memora_token')
   const headers = {}
@@ -9,7 +7,11 @@ async function request(method, path, body, isFormData = false) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
-  const res = await fetch(`${BASE}${path}`, {
+  
+  // Clean the path to ensure it starts with a slash
+  const url = path.startsWith('/') ? path : `/${path}`
+  
+  const res = await fetch(url, {
     method,
     headers,
     body: isFormData ? body : (body ? JSON.stringify(body) : undefined),

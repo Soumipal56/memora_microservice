@@ -109,7 +109,7 @@ async def upload_pdf_text(req: IngestTextRequest, user_id: str = Depends(get_cur
             with open(filepath, "wb") as f:
                 f.write(base64.b64decode(req.base64_pdf))
             
-            host = os.environ.get("VITE_API_URL", "http://localhost:10000")
+            host = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("VITE_API_URL", "http://localhost:10000")
             url_val = f"{host}/uploads/{filename}"
 
         extracted = {
