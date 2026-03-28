@@ -34,12 +34,12 @@ Return ONLY valid JSON (no markdown, no explanation):
 }}"""
 
     try:
-        response = await anthropic_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1200,
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={ "type": "json_object" },
             messages=[{"role": "user", "content": prompt}]
         )
-        text = response.content[0].text
+        text = response.choices[0].message.content.strip()
         clean = re.sub(r'```json|```', '', text).strip()
         return json.loads(clean)
     except Exception as e:
@@ -88,14 +88,89 @@ Return ONLY a JSON array of node IDs sorted by relevance (most relevant first), 
 If no nodes match, return: []"""
 
     try:
-        response = await anthropic_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=200,
-            messages=[{"role": "user", "content": prompt}]
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=200
         )
-        text = response.content[0].text
+        text = response.choices[0].message.content.strip()
         clean = re.sub(r'```json|```', '', text).strip()
         return json.loads(clean)
     except Exception as e:
         print(f"[ai] Search failed: {e}")
         return []
+
+# ── Suggestions ───────────────────────────────────────────────────────────────
+
+async def generate_suggestions(nodes: list) -> list:
+    """Generate 3 personalized learning suggestions based on user's saved items."""
+    if not nodes:
+        return []
+
+    node_list = [{"title": n["title"], "summary": n.get("summary", ""), "tags": n.get("tags", [])} for n in nodes[:15]]
+
+    prompt = f"""Based on the following knowledge nodes a user has saved, recommend 3 highly specific, real-world resources (videos, articles, or concepts) they should explore next to expand their understanding.
+    
+User's saved nodes: {json.dumps(node_list)}
+
+Return ONLY a valid JSON array of objects. Example format:
+[
+  {{
+    "title": "Exact Search Term or Video Title",
+    "type": "video",
+    "reason": "Why this specifically connects to their saved items...",
+    "url": "https://www.youtube.com/results?search_query=Exact+Search+Term"
+  }},
+  {{
+    "title": "Specific Article or Paper Topic",
+    "type": "article",
+    "reason": "Why this connects...",
+    "url": "https://www.google.com/search?q=Specific+Article+Topic"
+  }}
+]
+
+RULES:
+1. Provide exactly 3 suggestions.
+2. The 'type' must be either 'video' or 'article'.
+3. For videos, 'url' MUST be a valid YouTube search link. Do NOT hallucinate actual video IDs.
+4. For articles, 'url' MUST be a valid Google search link. Do NOT hallucinate actual article URLs.
+5. Output ONLY the raw JSON array (no markdown code blocks, no intro text)."""
+
+    try:
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600
+        )
+        text = response.choices[0].message.content.strip()
+        clean = re.sub(r'```json|```', '', text).strip()
+        return json.loads(clean)
+    except Exception as e:
+        print(f"[ai] Suggestions failed: {e}")
+        return []
+
+# ── Chat & RAG ────────────────────────────────────────────────────────────────
+
+async def generate_rag_answer(query: str, context_text: str, context_title: str) -> str:
+    """Generate an answer using RAG from local context."""
+    prompt = f"""You are an intelligent knowledge assistant helping a user understand their saved documents.
+Answer the user's question directly and concisely based ONLY on the following context. 
+If the context does not contain the answer, say "I don't see that information in this specific document."
+
+Document Title: {context_title}
+
+Context:
+{context_text}
+
+User Question: {query}"""
+
+    try:
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[ai] RAG Chat failed: {e}")
+        return f"Sorry, I couldn't generate an answer due to an error: {e}"

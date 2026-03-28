@@ -16,3 +16,5 @@ aiohttp>=3.9.5
 lxml>=5.2.2
 psycopg2-binary>=2.9.9
 gunicorn>=22.0.0
+passlib[bcrypt]>=1.7.4
+PyJWT>=2.8.0

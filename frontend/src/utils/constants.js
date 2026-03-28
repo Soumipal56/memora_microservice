@@ -34,13 +34,14 @@ export function getIcon(type) {
   return TYPE_ICONS[type] || TYPE_ICONS.default
 }
 
-export function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
-  if (diff < 60)      return 'just now'
-  if (diff < 3600)    return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400)   return `${Math.floor(diff / 3600)}h ago`
-  if (diff < 2592000) return `${Math.floor(diff / 86400)}d ago`
-  return `${Math.floor(diff / 2592000)}mo ago`
+export function exactDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).toLowerCase().replace(' ', ''); // Output like "6:21pm"
 }
 
 export function isOldNode(dateStr, days = 30) {

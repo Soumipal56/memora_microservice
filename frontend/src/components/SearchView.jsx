@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { api } from '../utils/api'
 import NodeCard from './NodeCard'
 
-export default function SearchView({ nodes, onNodeClick }) {
-  const [query, setQuery]     = useState('')
+export default function SearchView({ nodes, onNodeClick, onBack }) {
+  const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -30,12 +30,28 @@ export default function SearchView({ nodes, onNodeClick }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 20, animation: 'fadeIn 0.3s ease' }}>
-      <h2 style={{
-        fontFamily: "'Fredoka One', cursive", fontSize: 24,
-        color: '#06b6d4', marginBottom: 16,
-      }}>
-        🔍 Semantic Search
-      </h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{
+          fontFamily: "'Fredoka One', cursive", fontSize: 24,
+          color: '#06b6d4', margin: 0,
+        }}>
+          🔍 Semantic Search
+        </h2>
+        
+        <button 
+          onClick={onBack}
+          style={{
+            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '20px', padding: '8px 16px', color: '#fff', fontSize: '13px',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+            transition: 'all 0.2s', fontWeight: 'bold'
+          }}
+          onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+          onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+        >
+          ⬅ Back to Graph
+        </button>
+      </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         <input

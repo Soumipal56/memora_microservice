@@ -6,6 +6,7 @@ import re
 
 client = AsyncIOMotorClient(MONGODB_URI)
 db = client["memora"]
+users_col = db["users"]
 nodes_col = db["nodes"]
 edges_col = db["edges"]
 
@@ -13,6 +14,23 @@ def serialize(doc) -> dict:
     """Convert MongoDB doc to JSON-serializable dict."""
     doc["id"] = str(doc.pop("_id"))
     return doc
+
+# ── Users ─────────────────────────────────────────────────────────────────────
+
+async def create_user(email: str, password_hash: str) -> dict:
+    data = {
+        "email": email,
+        "password_hash": password_hash,
+        "createdAt": datetime.utcnow().isoformat()
+    }
+    result = await users_col.insert_one(data)
+    data["id"] = str(result.inserted_id)
+    data.pop("_id", None)
+    return data
+
+async def get_user_by_email(email: str):
+    doc = await users_col.find_one({"email": email})
+    return serialize(doc) if doc else None
 
 # ── Nodes ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +53,13 @@ async def get_node_by_url(url: str):
 async def delete_all_nodes():
     await nodes_col.delete_many({})
     await edges_col.delete_many({})
+
+async def delete_node(node_id: str):
+    result = await nodes_col.delete_one({"_id": ObjectId(node_id)})
+    if result.deleted_count > 0:
+        await edges_col.delete_many({"$or": [{"source": node_id}, {"target": node_id}]})
+        return True
+    return False
 
 # ── Edges ─────────────────────────────────────────────────────────────────────
 

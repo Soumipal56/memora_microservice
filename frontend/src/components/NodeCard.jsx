@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { getColor, getIcon, timeAgo } from '../utils/constants'
+import { getColor, getIcon, exactDate } from '../utils/constants'
 
-export default function NodeCard({ node, onClick }) {
+export default function NodeCard({ node, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false)
   const color = getColor(node.type)
 
@@ -20,27 +20,50 @@ export default function NodeCard({ node, onClick }) {
         animation: 'fadeIn 0.3s ease',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: '50%',
-          background: color, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 15, color: '#fff',
-        }}>
-          {getIcon(node.type)}
-        </div>
-        <div style={{ overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
           <div style={{
-            fontSize: 13, fontWeight: 800, color: '#fff',
-            lineHeight: 1.2, whiteSpace: 'nowrap',
-            overflow: 'hidden', textOverflow: 'ellipsis',
+            width: 34, height: 34, borderRadius: '50%',
+            background: color, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 15, color: '#fff',
           }}>
-            {node.title}
+            {getIcon(node.type)}
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 700, marginTop: 2 }}>
-            {node.type?.toUpperCase()} · {timeAgo(node.createdAt)}
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{
+              fontSize: 13, fontWeight: 800, color: '#fff',
+              lineHeight: 1.2, whiteSpace: 'nowrap',
+              overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {node.title}
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 700, marginTop: 2 }}>
+              {node.type?.toUpperCase()} · {exactDate(node.createdAt)}
+            </div>
           </div>
         </div>
+        
+        {onDelete && (
+          <button 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              if(window.confirm('Are you sure you want to delete this memory?')) {
+                onDelete(node.id);
+              }
+            }} 
+            title="Delete memory"
+            style={{
+              background: 'rgba(239, 68, 68, 0.15)', border: 'none',
+              borderRadius: '50%', width: 28, height: 28, flexShrink: 0,
+              color: '#ef4444', cursor: 'pointer', fontSize: 13,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: hovered ? 1 : 0.3, transition: 'all 0.2s',
+            }}
+          >
+            🗑
+          </button>
+        )}
       </div>
 
       <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.55, margin: '0 0 10px' }}>

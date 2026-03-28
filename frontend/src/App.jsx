@@ -7,18 +7,22 @@ import SavedView   from './components/SavedView'
 import SearchView  from './components/SearchView'
 import EmptyState  from './components/EmptyState'
 import Toast       from './components/Toast'
+import AuthOverlay from './components/AuthOverlay'
 import { useGraph } from './hooks/useGraph'
 import { useToast } from './hooks/useToast'
 import { isOldNode } from './utils/constants'
 import { useMediaQuery } from './hooks/useMediaQuery'
 
 export default function App() {
-  const { nodes, edges, loading, progress, ingest, clearAll } = useGraph()
+  const { nodes, edges, loading, progress, ingest, ingestFile, clearAll, deleteNode } = useGraph()
   const { toast, show } = useToast()
   const isMobile = useMediaQuery('(max-width: 640px)')
   const [view, setView]           = useState('graph') // 'graph' | 'saved' | 'search'
   const [selectedNode, setSelected] = useState(null)
   const inputRef = useRef(null)
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('memora_token'))
+  const [showAuth, setShowAuth] = useState(false)
 
   // Decorative stars (stable array)
   const stars = Array.from({ length: 24 }, (_, i) => ({
@@ -32,17 +36,43 @@ export default function App() {
   }))
 
   const handleIngest = async (url) => {
+    if (!isAuthenticated) {
+      setShowAuth(true)
+      return
+    }
     try {
       const node = await ingest(url)
       setSelected(node)
       setView('graph')
       show(`✨ "${node.title}" saved!`)
     } catch (e) {
+      if (e.message.includes('401')) {
+        localStorage.removeItem('memora_token')
+        setIsAuthenticated(false)
+        setShowAuth(true)
+      } else {
+        show(e.message, 'error')
+      }
+    }
+  }
+
+  const handleIngestFile = async (file) => {
+    if (!isAuthenticated) {
+      setShowAuth(true)
+      return
+    }
+    try {
+      const node = await ingestFile(file)
+      setSelected(node)
+      setView('graph')
+      show(`✨ "${node.title}" extracted and saved!`)
+    } catch (e) {
       show(e.message, 'error')
     }
   }
 
   const handleClearAll = async () => {
+    if (!isAuthenticated) return setShowAuth(true)
     await clearAll()
     setSelected(null)
     show('All nodes cleared')
@@ -50,7 +80,15 @@ export default function App() {
 
   const handleNodeClick = (node) => {
     setSelected(node)
-    setView('graph')
+  }
+
+  const handleDeleteNode = async (nodeId) => {
+    if (!isAuthenticated) return setShowAuth(true)
+    const success = await deleteNode(nodeId)
+    if (success) {
+      setSelected(null)
+      show('Memory deleted')
+    }
   }
 
   const resurfaceNodes = nodes.filter(n => isOldNode(n.createdAt))
@@ -77,9 +115,18 @@ export default function App() {
 
       <Toast toast={toast} />
 
+      {showAuth && (
+        <AuthOverlay onSuccess={() => {
+          setIsAuthenticated(true)
+          setShowAuth(false)
+          window.location.reload() // reload graph data fully
+        }} />
+      )}
+
       {/* Header */}
       <Header
         onIngest={handleIngest}
+        onIngestFile={handleIngestFile}
         loading={loading}
         progress={progress}
         onToggleSaved={() => setView(v => v === 'saved'  ? 'graph' : 'saved')}
@@ -121,7 +168,7 @@ export default function App() {
         {view === 'graph' && (
           <div style={{ flex: 1, position: 'relative' }}>
             {nodes.length === 0
-              ? <EmptyState onFocus={() => document.querySelector('input')?.focus()} />
+              ? <EmptyState onFocus={() => isAuthenticated ? document.querySelector('input')?.focus() : setShowAuth(true)} />
               : <GraphCanvas
                   nodes={nodes}
                   edges={edges}
@@ -134,22 +181,23 @@ export default function App() {
 
         {/* Saved */}
         {view === 'saved' && (
-          <SavedView nodes={nodes} onNodeClick={handleNodeClick} />
+          <SavedView nodes={nodes} onNodeClick={handleNodeClick} onBack={() => setView('graph')} onDelete={handleDeleteNode} />
         )}
 
         {/* Search */}
         {view === 'search' && (
-          <SearchView nodes={nodes} onNodeClick={handleNodeClick} />
+          <SearchView nodes={nodes} onNodeClick={handleNodeClick} onBack={() => setView('graph')} />
         )}
 
-        {/* Node detail panel (only in graph view) */}
-        {view === 'graph' && selectedNode && (
+        {/* Node detail panel (available in all views) */}
+        {selectedNode && (
           <NodeDetail
             node={selectedNode}
             nodes={nodes}
             edges={edges}
             onClose={() => setSelected(null)}
             onRelatedClick={setSelected}
+            onDelete={handleDeleteNode}
           />
         )}
       </div>

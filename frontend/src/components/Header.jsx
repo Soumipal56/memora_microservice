@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 
-export default function Header({ onIngest, loading, progress, onToggleSaved, onToggleSearch, savedCount, view }) {
+export default function Header({ onIngest, onIngestFile, loading, progress, onToggleSaved, onToggleSearch, savedCount, view }) {
   const [url, setUrl] = useState('')
   const isMobile = useMediaQuery('(max-width: 640px)')
+
+  const fileInputRef = React.useRef(null)
 
   const handleIngest = () => {
     if (!url.trim() || loading) return
     onIngest(url.trim()).then(() => setUrl(''))
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file || loading) return
+    onIngestFile(file)
+    e.target.value = null // reset
   }
 
   if (isMobile) {
@@ -73,6 +82,26 @@ export default function Header({ onIngest, loading, progress, onToggleSaved, onT
             onFocus={e => e.target.style.borderColor = 'rgba(255,110,180,0.6)'}
             onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
           />
+          <input 
+            type="file" 
+            accept=".pdf" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            style={{ display: 'none' }} 
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            title="Upload PDF"
+            style={{
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 16,
+              transition: 'all 0.2s'
+            }}
+          >
+            📎
+          </button>
           <button
             onClick={handleIngest}
             disabled={loading || !url.trim()}
@@ -149,6 +178,26 @@ export default function Header({ onIngest, loading, progress, onToggleSaved, onT
         onFocus={e => e.target.style.borderColor = 'rgba(255,110,180,0.6)'}
         onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
       />
+      <input 
+        type="file" 
+        accept=".pdf" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        style={{ display: 'none' }} 
+      />
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={loading}
+        title="Upload PDF"
+        style={{
+          background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: 24, padding: '10px 16px', color: '#fff',
+          cursor: loading ? 'not-allowed' : 'pointer', fontSize: 15,
+          transition: 'all 0.2s'
+        }}
+      >
+        📎 PDF
+      </button>
 
       {/* Ingest button */}
       <button

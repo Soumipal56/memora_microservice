@@ -208,3 +208,5 @@ async def universal_extract(url: str) -> dict:
         return data
     except Exception as e:
         raise ValueError(f"All extraction methods failed for {url}: {e}")
+
+

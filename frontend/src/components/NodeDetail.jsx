@@ -1,7 +1,27 @@
-import { getColor, getIcon, timeAgo } from '../utils/constants'
+import { useState } from 'react'
+import { getColor, getIcon, exactDate } from '../utils/constants'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { api } from '../utils/api'
 
-export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick }) {
+export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick, onDelete }) {
+  const [chatQuery, setChatQuery] = useState('')
+  const [chatAnswer, setChatAnswer] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+
+  const handleChatSubmit = async () => {
+    if (!chatQuery.trim() || chatLoading) return
+    setChatLoading(true)
+    try {
+      const res = await api.chat(chatQuery, node.id)
+      setChatAnswer(res.answer || 'No answer received.')
+      setChatQuery('')
+    } catch (e) {
+      setChatAnswer(`Error: ${e.message}`)
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
   if (!node) return null
 
   const related = edges
@@ -58,11 +78,20 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
         }}>
           {getIcon(node.type)} {node.type}
         </span>
-        <button onClick={onClose} style={{
-          background: 'rgba(255,255,255,0.1)', border: 'none',
-          borderRadius: '50%', width: 28, height: 28,
-          color: '#fff', cursor: 'pointer', fontSize: 14,
-        }}>✕</button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => { if(window.confirm('Delete this memory?')) onDelete(node.id) }} style={{
+            background: 'rgba(239, 68, 68, 0.2)', border: 'none',
+            borderRadius: '50%', width: 28, height: 28,
+            color: '#ef4444', cursor: 'pointer', fontSize: 13,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }} title="Delete memory">🗑</button>
+          <button onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.1)', border: 'none',
+            borderRadius: '50%', width: 28, height: 28,
+            color: '#fff', cursor: 'pointer', fontSize: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>✕</button>
+        </div>
       </div>
 
       {/* Title */}
@@ -99,7 +128,7 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
           <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 700 }}>CLUSTER </span>
           <span style={{ color: '#ff6eb4', fontWeight: 800 }}>{node.cluster}</span>
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.3)' }}>{timeAgo(node.createdAt)}</span>
+        <span style={{ color: 'rgba(255,255,255,0.3)' }}>{exactDate(node.createdAt)}</span>
       </div>
 
       {/* Resurface */}
@@ -116,7 +145,7 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
 
       {/* Open original */}
       {node.url && (
-        <a href={node.url} target="_blank" rel="noreferrer" style={{
+        <a href={node.url.startsWith('file://') ? `${import.meta.env.VITE_API_URL || 'http://localhost:10000'}/uploads/${node.url.replace('file://', '')}` : node.url} target="_blank" rel="noreferrer" style={{
           display: 'block',
           background: 'linear-gradient(135deg,#ff6eb4,#a855f7)',
           borderRadius: 10, padding: '10px 16px',
@@ -161,6 +190,54 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
           ))}
         </div>
       )}
+      {/* Chat Section */}
+      <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+        <div style={{
+          fontSize: 10, fontWeight: 800,
+          color: 'rgba(255,255,255,0.35)', letterSpacing: 1, marginBottom: 8,
+        }}>
+          ASK AI ABOUT THIS
+        </div>
+        
+        {chatAnswer && (
+          <div style={{
+            background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)',
+            borderRadius: 8, padding: '10px 14px', marginBottom: 12,
+            fontSize: 13, color: '#e0f2fe', lineHeight: 1.5
+          }}>
+            <div style={{ fontWeight: 800, color: '#06b6d4', marginBottom: 4 }}>AI Answer:</div>
+            {chatAnswer}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={chatQuery}
+            onChange={e => setChatQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleChatSubmit()}
+            placeholder="Ask a question..."
+            style={{
+              flex: 1, background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, padding: '8px 12px',
+              color: '#fff', fontSize: 13, outline: 'none',
+              fontFamily: "'Nunito', sans-serif",
+            }}
+          />
+          <button
+            onClick={handleChatSubmit}
+            disabled={chatLoading || !chatQuery.trim()}
+            style={{
+              background: 'linear-gradient(135deg,#06b6d4,#0ea5e9)',
+              border: 'none', borderRadius: 8, padding: '0 12px',
+              color: '#fff', fontWeight: 800, fontSize: 13,
+              cursor: chatLoading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {chatLoading ? '...' : 'Ask'}
+          </button>
+        </div>
+      </div>
     </aside>
   )
 }
