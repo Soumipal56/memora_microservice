@@ -30,11 +30,12 @@ export default function App() {
   // Note: This only works while the user has the Memora tab open!
   useEffect(() => {
     const interval = setInterval(() => {
-      // Ping the FastAPI health endpoint directly
-      fetch('/health').catch(() => { });
+      // Ping the FastAPI keep-alive endpoint with a cache-buster
+      fetch(`/api/keep-alive?t=${Date.now()}`).catch(() => { });
     }, 14 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
 
   // Check for onboarding show flag on mount (persists across reload after signup)
   useEffect(() => {

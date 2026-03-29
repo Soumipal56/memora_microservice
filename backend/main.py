@@ -57,6 +57,11 @@ async def health():
 async def status():
     return {"status": "Memora API running"}
 
+@app.get("/api/keep-alive")
+async def keep_alive():
+    """Heartbeat endpoint to prevent Render sleep."""
+    return {"status": "alive", "time": time.time()}
+
 @app.post("/api/register")
 async def register(req: AuthRequest):
     existing = await get_user_by_email(req.email)
