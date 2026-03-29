@@ -163,7 +163,7 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
             fontSize: 10, fontWeight: 800,
             color: 'rgba(255,255,255,0.35)', letterSpacing: 1, marginBottom: 8,
           }}>
-            RELATED NODES
+            DIRECT CONNECTIONS
           </div>
           {related.map(n => (
             <div
@@ -174,7 +174,7 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 8, padding: '8px 12px', marginBottom: 6,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                transition: 'background 0.2s',
+                transition: 'all 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,110,180,0.1)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
@@ -190,6 +190,60 @@ export default function NodeDetail({ node, nodes, edges, onClose, onRelatedClick
           ))}
         </div>
       )}
+
+      {/* Smart Suggestions */}
+      {(() => {
+        const directIds = new Set(related.map(r => r.id))
+        const suggestions = nodes
+          .filter(n => n.id !== node.id && !directIds.has(n.id))
+          .filter(n => {
+            const sameCluster = n.cluster === node.cluster
+            const commonTags = n.tags?.filter(t => node.tags?.includes(t)) || []
+            return sameCluster || commonTags.length > 0
+          })
+          .sort((a, b) => {
+             // Prioritize tag overlap
+             const aTags = a.tags?.filter(t => node.tags?.includes(t)).length || 0
+             const bTags = b.tags?.filter(t => node.tags?.includes(t)).length || 0
+             return bTags - aTags
+          })
+          .slice(0, 3)
+
+        if (suggestions.length === 0) return null
+
+        return (
+          <div style={{ marginTop: 10 }}>
+            <div style={{
+              fontSize: 10, fontWeight: 800,
+              color: 'rgba(6,182,212,0.6)', letterSpacing: 1, marginBottom: 8,
+              display: 'flex', alignItems: 'center', gap: 6
+            }}>
+              <span>✦</span> RECOMMENDED NEXT
+            </div>
+            {suggestions.map(n => (
+              <div
+                key={n.id}
+                onClick={() => onRelatedClick(n)}
+                style={{
+                  background: 'rgba(6,182,212,0.05)',
+                  border: '1px solid rgba(6,182,212,0.2)',
+                  borderRadius: 8, padding: '8px 12px', marginBottom: 6,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(6,182,212,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(6,182,212,0.05)'}
+              >
+                <span style={{ fontSize: 12 }}>✨</span>
+                <span style={{ fontSize: 12, color: '#e0f2fe', fontWeight: 600 }}>
+                  {n.title?.length > 32 ? n.title.slice(0, 30) + '…' : n.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* Chat Section */}
       <div style={{ marginTop: 'auto', paddingTop: 16 }}>
         <div style={{

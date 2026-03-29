@@ -1,3 +1,5 @@
+import neonBrain from '../assets/neon_brain.png'
+
 export default function EmptyState({ onFocus }) {
   const pills = ['YouTube', 'Articles', 'GitHub', 'PDFs', 'Blogs', 'Papers', 'Tweets']
 
@@ -8,11 +10,16 @@ export default function EmptyState({ onFocus }) {
       height: '100%', gap: 18, padding: 40,
       animation: 'fadeIn 0.6s ease',
     }}>
-      <div style={{
-        fontSize: 72, lineHeight: 1,
-        animation: 'pulse 3s ease-in-out infinite',
-        filter: 'drop-shadow(0 0 24px rgba(255,110,180,0.5))',
-      }}>✿</div>
+      <img 
+        src={neonBrain} 
+        alt="Neon Brain"
+        style={{
+          width: 140, height: 140,
+          animation: 'pulse 4s ease-in-out infinite',
+          filter: 'drop-shadow(0 0 32px rgba(255,110,180,0.6))',
+          objectFit: 'contain'
+        }} 
+      />
 
       <h2 style={{
         fontFamily: "'Fredoka One', cursive",

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 
-export default function Header({ onIngest, onIngestFile, loading, progress, onToggleSaved, onToggleSearch, savedCount, view }) {
+export default function Header({ onIngest, onIngestFile, loading, progress, onToggleSaved, onToggleSearch, onToggleHowTo, savedCount, view }) {
   const [url, setUrl] = useState('')
   const isMobile = useMediaQuery('(max-width: 640px)')
 
@@ -63,6 +63,11 @@ export default function Header({ onIngest, onIngestFile, loading, progress, onTo
           <button onClick={onToggleSearch} style={btnStyle(view === 'search', '#06b6d4', true)}>
             🔍
           </button>
+
+          {/* How To */}
+          <button onClick={onToggleHowTo} style={btnStyle(view === 'howto', '#a855f7', true)}>
+            ❓
+          </button>
         </div>
 
         {/* Row 2: URL input + Ingest */}
@@ -80,14 +85,14 @@ export default function Header({ onIngest, onIngestFile, loading, progress, onTo
               fontFamily: "'Nunito', sans-serif", transition: 'border 0.2s',
             }}
             onFocus={e => e.target.style.borderColor = 'rgba(255,110,180,0.6)'}
-            onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
           />
-          <input 
-            type="file" 
-            accept=".pdf" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            style={{ display: 'none' }} 
+          <input
+            type="file"
+            accept=".pdf"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -176,14 +181,14 @@ export default function Header({ onIngest, onIngestFile, loading, progress, onTo
           fontFamily: "'Nunito', sans-serif", transition: 'border 0.2s',
         }}
         onFocus={e => e.target.style.borderColor = 'rgba(255,110,180,0.6)'}
-        onBlur={e  => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
       />
-      <input 
-        type="file" 
-        accept=".pdf" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        style={{ display: 'none' }} 
+      <input
+        type="file"
+        accept=".pdf"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
       />
       <button
         onClick={() => fileInputRef.current?.click()}
@@ -221,6 +226,11 @@ export default function Header({ onIngest, onIngestFile, loading, progress, onTo
       {/* Search */}
       <button onClick={onToggleSearch} style={btnStyle(view === 'search', '#06b6d4')}>
         🔍
+      </button>
+
+      {/* How To */}
+      <button onClick={onToggleHowTo} style={btnStyle(view === 'howto', '#a855f7')} title="How to use">
+        ❓
       </button>
     </header>
   )

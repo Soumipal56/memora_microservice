@@ -1,7 +1,7 @@
 import NodeCard from './NodeCard'
 import SuggestionPanel from './SuggestionPanel'
 
-export default function SavedView({ nodes, onNodeClick, onBack, onDelete }) {
+export default function SavedView({ nodes, onNodeClick, onBack, onDelete, showToast }) {
   const topLevel = nodes.filter(n => !n.parentId)
 
   return (
@@ -42,7 +42,7 @@ export default function SavedView({ nodes, onNodeClick, onBack, onDelete }) {
           gap: 14,
         }}>
           {topLevel.map(n => (
-            <NodeCard key={n.id} node={n} onClick={() => onNodeClick(n)} onDelete={onDelete} />
+            <NodeCard key={n.id} node={n} onClick={() => onNodeClick(n)} onDelete={onDelete} showToast={showToast} />
           ))}
         </div>
       )}

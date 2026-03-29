@@ -26,6 +26,9 @@ export default function AuthOverlay({ onSuccess }) {
       }
       
       localStorage.setItem('memora_token', data.token)
+      if (!isLogin) {
+        localStorage.setItem('memora_show_howto', 'true')
+      }
       if (onSuccess) onSuccess()
     } catch (err) {
       setError(err.message)

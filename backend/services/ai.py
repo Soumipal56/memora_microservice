@@ -174,3 +174,9 @@ User Question: {query}"""
     except Exception as e:
         print(f"[ai] RAG Chat failed: {e}")
         return f"Sorry, I couldn't generate an answer due to an error: {e}"
+        elif "rate_limit" in err_msg.lower():
+            raise ValueError("OpenAI rate limit hit. Please wait a moment.")
+        print(f"[ai] Transcription failed: {e}")
+        raise ValueError(f"Transcription failed: {err_msg}")
+
+

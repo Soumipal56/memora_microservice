@@ -263,3 +263,17 @@ async def ingest_document(filename: str, extracted: dict) -> dict:
         "content_type": doc_type,
         "cached": False
     }
+            }
+        )
+        
+        # Create edges to related items
+        for m in similar:
+            await create_edge(saved["id"], m.id, m.score)
+            
+    return {
+        "node": saved_nodes[0],
+        "all_nodes": saved_nodes,
+        "content_type": "voice",
+        "cached": False
+    }
+

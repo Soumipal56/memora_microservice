@@ -1,9 +1,31 @@
 import { useState } from 'react'
 import { getColor, getIcon, exactDate } from '../utils/constants'
 
-export default function NodeCard({ node, onClick, onDelete }) {
+export default function NodeCard({ node, onClick, onDelete, showToast }) {
   const [hovered, setHovered] = useState(false)
   const color = getColor(node.type)
+
+  const handleShare = (e) => {
+    e.stopPropagation();
+    const shareData = {
+      title: node.title,
+      text: node.summary,
+      url: node.url || window.location.href,
+    };
+    if (navigator.share) {
+      navigator.share(shareData).catch(console.error);
+    } else {
+      const textToCopy = `${node.title}\n\n${node.summary}\n\n${node.url || ''}`;
+      navigator.clipboard.writeText(textToCopy.trim());
+      if (showToast) showToast('Copied to clipboard!');
+    }
+  };
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(node.summary || node.content || '');
+    if (showToast) showToast('Summary copied!', 'success');
+  };
 
   return (
     <div
@@ -44,26 +66,56 @@ export default function NodeCard({ node, onClick, onDelete }) {
           </div>
         </div>
         
-        {onDelete && (
+        <div style={{ display: 'flex', gap: 6 }}>
           <button 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              if(window.confirm('Are you sure you want to delete this memory?')) {
-                onDelete(node.id);
-              }
-            }} 
-            title="Delete memory"
+            onClick={handleCopy}
+            title="Copy summary"
             style={{
-              background: 'rgba(239, 68, 68, 0.15)', border: 'none',
+              background: 'rgba(255, 255, 255, 0.1)', border: 'none',
               borderRadius: '50%', width: 28, height: 28, flexShrink: 0,
-              color: '#ef4444', cursor: 'pointer', fontSize: 13,
+              color: '#fff', cursor: 'pointer', fontSize: 12,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               opacity: hovered ? 1 : 0.3, transition: 'all 0.2s',
             }}
           >
-            🗑
+            📋
           </button>
-        )}
+
+          <button 
+            onClick={handleShare}
+            title="Share node"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)', border: 'none',
+              borderRadius: '50%', width: 28, height: 28, flexShrink: 0,
+              color: '#fff', cursor: 'pointer', fontSize: 12,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: hovered ? 1 : 0.3, transition: 'all 0.2s',
+            }}
+          >
+            📤
+          </button>
+
+          {onDelete && (
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                if(window.confirm('Are you sure you want to delete this memory?')) {
+                  onDelete(node.id);
+                }
+              }} 
+              title="Delete memory"
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)', border: 'none',
+                borderRadius: '50%', width: 28, height: 28, flexShrink: 0,
+                color: '#ef4444', cursor: 'pointer', fontSize: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: hovered ? 1 : 0.3, transition: 'all 0.2s',
+              }}
+            >
+              🗑
+            </button>
+          )}
+        </div>
       </div>
 
       <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.55, margin: '0 0 10px' }}>

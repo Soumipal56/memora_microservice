@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from '../utils/api'
 import NodeCard from './NodeCard'
 
-export default function SearchView({ nodes, onNodeClick, onBack }) {
+export default function SearchView({ nodes, onNodeClick, onBack, showToast }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -96,7 +96,7 @@ export default function SearchView({ nodes, onNodeClick, onBack }) {
           gap: 14,
         }}>
           {results.map(n => (
-            <NodeCard key={n.id} node={n} onClick={() => onNodeClick(n)} />
+            <NodeCard key={n.id} node={n} onClick={() => onNodeClick(n)} showToast={showToast} />
           ))}
         </div>
       )}

@@ -1,13 +1,14 @@
-import { useState, useRef } from 'react'
-import Header     from './components/Header'
-import StatsBar   from './components/StatsBar'
+import { useState, useRef, useEffect } from 'react'
+import Header from './components/Header'
+import StatsBar from './components/StatsBar'
 import GraphCanvas from './components/GraphCanvas'
-import NodeDetail  from './components/NodeDetail'
-import SavedView   from './components/SavedView'
-import SearchView  from './components/SearchView'
-import EmptyState  from './components/EmptyState'
-import Toast       from './components/Toast'
+import NodeDetail from './components/NodeDetail'
+import SavedView from './components/SavedView'
+import SearchView from './components/SearchView'
+import EmptyState from './components/EmptyState'
+import Toast from './components/Toast'
 import AuthOverlay from './components/AuthOverlay'
+import HowToUse from './components/HowToUse'
 import { useGraph } from './hooks/useGraph'
 import { useToast } from './hooks/useToast'
 import { isOldNode } from './utils/constants'
@@ -17,23 +18,55 @@ export default function App() {
   const { nodes, edges, loading, progress, ingest, ingestFile, clearAll, deleteNode } = useGraph()
   const { toast, show } = useToast()
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const [view, setView]           = useState('graph') // 'graph' | 'saved' | 'search'
+  const [view, setView] = useState('graph') // 'graph' | 'saved' | 'search' | 'howto'
   const [selectedNode, setSelected] = useState(null)
+  const [timeFilter, setTimeFilter] = useState(0) // 0: All, 1: 1d, 7: 7d, 30: 30d
   const inputRef = useRef(null)
-  
+
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('memora_token'))
   const [showAuth, setShowAuth] = useState(false)
+
+  // Keep-alive ping every 14 minutes to prevent Render free tier from sleeping.
+  // Note: This only works while the user has the Memora tab open!
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Ping the FastAPI health endpoint directly
+      fetch('/health').catch(() => { });
+    }, 14 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Check for onboarding show flag on mount (persists across reload after signup)
+  useEffect(() => {
+    if (localStorage.getItem('memora_show_howto')) {
+      setView('howto')
+      localStorage.removeItem('memora_show_howto')
+    }
+  }, []);
 
   // Decorative stars (stable array)
   const stars = Array.from({ length: 24 }, (_, i) => ({
     id: i,
-    size:  (((i * 7) % 3) + 1),
-    top:   ((i * 37) % 100),
-    left:  ((i * 53) % 100),
+    size: (((i * 7) % 3) + 1),
+    top: ((i * 37) % 100),
+    left: ((i * 53) % 100),
     opacity: 0.2 + ((i * 11) % 6) / 10,
-    dur:   2 + ((i * 3) % 3),
+    dur: 2 + ((i * 3) % 3),
     delay: ((i * 7) % 30) / 10,
   }))
+
+  // Time Filtering Logic
+  const filteredNodes = nodes.filter(node => {
+    if (timeFilter === 0) return true
+    if (!node.createdAt) return true // Keep legacy nodes
+    const ageInDays = (Date.now() - new Date(node.createdAt)) / (1000 * 60 * 60 * 24)
+    return ageInDays <= timeFilter
+  })
+
+  const filteredEdges = edges.filter(edge => {
+    return filteredNodes.some(n => n.id === edge.source) && 
+           filteredNodes.some(n => n.id === edge.target)
+  })
 
   const handleIngest = async (url) => {
     if (!isAuthenticated) {
@@ -129,8 +162,9 @@ export default function App() {
         onIngestFile={handleIngestFile}
         loading={loading}
         progress={progress}
-        onToggleSaved={() => setView(v => v === 'saved'  ? 'graph' : 'saved')}
+        onToggleSaved={() => setView(v => v === 'saved' ? 'graph' : 'saved')}
         onToggleSearch={() => setView(v => v === 'search' ? 'graph' : 'search')}
+        onToggleHowTo={() => setView(v => v === 'howto' ? 'graph' : 'howto')}
         savedCount={nodes.filter(n => !n.parentId).length}
         view={view}
       />
@@ -155,10 +189,13 @@ export default function App() {
 
       {/* Stats */}
       <StatsBar
-        nodes={nodes} edges={edges}
+        nodes={filteredNodes} 
+        edges={filteredEdges}
         onClearAll={handleClearAll}
         onGraphView={() => setView('graph')}
         view={view}
+        timeFilter={timeFilter}
+        onTimeFilterChange={setTimeFilter}
       />
 
       {/* Main area */}
@@ -167,26 +204,42 @@ export default function App() {
         {/* Graph */}
         {view === 'graph' && (
           <div style={{ flex: 1, position: 'relative' }}>
-            {nodes.length === 0
+            {filteredNodes.length === 0
               ? <EmptyState onFocus={() => isAuthenticated ? document.querySelector('input')?.focus() : setShowAuth(true)} />
               : <GraphCanvas
-                  nodes={nodes}
-                  edges={edges}
-                  onNodeClick={setSelected}
-                  selectedNode={selectedNode}
-                />
+                nodes={filteredNodes}
+                edges={filteredEdges}
+                onNodeClick={setSelected}
+                selectedNode={selectedNode}
+              />
             }
           </div>
         )}
 
         {/* Saved */}
         {view === 'saved' && (
-          <SavedView nodes={nodes} onNodeClick={handleNodeClick} onBack={() => setView('graph')} onDelete={handleDeleteNode} />
+          <SavedView
+            nodes={filteredNodes}
+            onNodeClick={handleNodeClick}
+            onBack={() => setView('graph')}
+            onDelete={handleDeleteNode}
+            showToast={show}
+          />
         )}
 
         {/* Search */}
         {view === 'search' && (
-          <SearchView nodes={nodes} onNodeClick={handleNodeClick} onBack={() => setView('graph')} />
+          <SearchView
+            nodes={filteredNodes}
+            onNodeClick={handleNodeClick}
+            onBack={() => setView('graph')}
+            showToast={show}
+          />
+        )}
+
+        {/* How to use */}
+        {view === 'howto' && (
+          <HowToUse onGetStarted={() => setView('graph')} />
         )}
 
         {/* Node detail panel (available in all views) */}
